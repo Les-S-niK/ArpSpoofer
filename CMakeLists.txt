@@ -3,11 +3,29 @@ set(PROJECT_NAME "ArpSpoofer")
 
 project(${PROJECT_NAME} LANGUAGES CXX)
 
+option(TESTING "Enable testing build" ON)
+
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(${PROJECT_NAME} main.cpp)
+if(TESTING)
+  find_package(GTest REQUIRED)
+  enable_testing()
+  include(GoogleTest)
+  add_executable(ArpSpooferTests tests/tests_frames.cpp
+                                 tests/tests_net_interfaces.cpp)
+  target_include_directories(ArpSpooferTests PRIVATE include)
+  target_link_libraries(ArpSpooferTests PRIVATE GTest::gtest GTest::gtest_main)
+  add_test(NAME ArpSpooferTests COMMAND ArpSpooferTests)
 
-target_include_directories(
-  ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                         $<INSTALL_INTERFACE:include>)
+else()
+  add_executable(${PROJECT_NAME} main.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+endif()
+
+if(TESTING)
+
+endif()
