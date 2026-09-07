@@ -1,3 +1,7 @@
+
+#ifndef INCLUDE_INCLUDE_FRAMES_HPP_
+#define INCLUDE_INCLUDE_FRAMES_HPP_
+
 #include <algorithm>
 #include <array>
 #include <concepts>
@@ -75,3 +79,5 @@ static_assert(frame_trait<EthernetFrame<28>, 42, 14, 28>,  // NOLINT.
 //   payload_size>
 static_assert(frame_trait<ArpFrame, 28, 8, 20>,  // NOLINT.
               "<ArpFrame> does not satisfy <frame_trait>");
+
+#endif  // INCLUDE_INCLUDE_FRAMES_HPP_
