@@ -5,6 +5,8 @@
 #include <expected>
 #include <optional>
 
+#include "sockets.hpp"
+
 using network_interfaces::NetworkActiveInterface;
 using network_interfaces::NetworkInterfaces;
 
@@ -30,10 +32,13 @@ NetworkInterfaces::~NetworkInterfaces() {
     }
 }
 
-[[nodiscard]] auto NetworkActiveInterface::create(
-    RawSocket::sock_fd sock_fd) noexcept
+[[nodiscard]] auto NetworkActiveInterface::create() noexcept
     -> std::expected<NetworkActiveInterface, Errors> {
-    NetworkActiveInterface active_interface{sock_fd};
+    auto udp_socket = UdpSocket::create();
+    if (not udp_socket) {
+        return std::unexpected{Errors::CanNotGetSocketFd};
+    }
+    NetworkActiveInterface active_interface{std::move(udp_socket.value())};
     auto res = active_interface.setActiveInterface();
     if (not res) {
         return std::unexpected{res.error()};
@@ -41,8 +46,8 @@ NetworkInterfaces::~NetworkInterfaces() {
     return active_interface;
 }
 
-NetworkActiveInterface::NetworkActiveInterface(RawSocket::sock_fd sock_fd)
-    : _sock_fd(sock_fd) {
+NetworkActiveInterface::NetworkActiveInterface(UdpSocket udp_socket)
+    : _udp_socket(std::move(udp_socket)) {
     std::memset(&_ifr, 0, sizeof(struct ifreq));
 }
 
@@ -65,7 +70,7 @@ NetworkActiveInterface::NetworkActiveInterface(RawSocket::sock_fd sock_fd)
     _ifr.ifr_ifindex = static_cast<i32>(ifindex);
     if_indextoname(ifindex, static_cast<char*>(_ifr.ifr_name));
 
-    if (ioctl(_sock_fd, SIOCGIFFLAGS, &_ifr) == -1) {
+    if (ioctl(_udp_socket.getSockFd(), SIOCGIFFLAGS, &_ifr) == -1) {
         return std::unexpected{Errors::CanNotGetInterfaceFlags};
     }
     return {};
@@ -89,18 +94,49 @@ NetworkActiveInterface::searchActiveInterfaceByFlags() noexcept
 [[nodiscard]] auto
 NetworkActiveInterface::setActiveInterfaceProperties() noexcept
     -> std::expected<void, Errors> {
-    if (ioctl(_sock_fd, SIOCGIFHWADDR, &_ifr) == -1) {
-        return std::unexpected{Errors::CanNotGetInterfaceHwAddr};
+    auto set_result = setActiveInterfaceHardwareAddr().and_then(
+        [this]() -> std::expected<void, Errors> {
+            return setActiveInterfaceProtocolAddr();
+        });
+    if (not set_result) {
+        return std::unexpected{set_result.error()};
     }
-    if (ioctl(_sock_fd, SIOCGIFADDR, &_ifr) == -1) {
-        return std::unexpected{Errors::CanNotGetInterfacePrAddr};
-    }
-    _ifname = std::array<i8, ifname_size>{};
-    std::memcpy(_ifname->data(), static_cast<const char*>(_ifr.ifr_name),
-                ifname_size);
+
+    setActiveInterfaceName();
     _ifindex = _ifr.ifr_ifindex;
 
     return {};
+}
+
+[[nodiscard]] auto
+NetworkActiveInterface::setActiveInterfaceHardwareAddr() noexcept
+    -> std::expected<void, Errors> {
+    if (ioctl(_udp_socket.getSockFd(), SIOCGIFHWADDR, &_ifr) == -1) {
+        return std::unexpected{Errors::CanNotGetInterfaceHwAddr};
+    }
+    std::memcpy(_hwaddr.data(),
+                static_cast<const char*>(_ifr.ifr_hwaddr.sa_data), hwaddr_size);
+    return {};
+}
+
+[[nodiscard]] auto
+NetworkActiveInterface::setActiveInterfaceProtocolAddr() noexcept
+    -> std::expected<void, Errors> {
+    if (ioctl(_udp_socket.getSockFd(), SIOCGIFADDR, &_ifr) == -1) {
+        return std::unexpected{Errors::CanNotGetInterfacePrAddr};
+    }
+    constexpr u8 protocol_addr_offset = 2;
+    std::memcpy(_praddr.data(),
+                std::next(static_cast<const char*>(_ifr.ifr_addr.sa_data),
+                          protocol_addr_offset),
+                praddr_size);
+    return {};
+}
+
+auto NetworkActiveInterface::setActiveInterfaceName() noexcept -> void {
+    _ifname = std::array<i8, ifname_size>{};
+    std::memcpy(_ifname->data(), static_cast<const char*>(_ifr.ifr_name),
+                ifname_size);
 }
 
 [[nodiscard]] auto NetworkActiveInterface::getInterfaceIndex() const noexcept
@@ -118,11 +154,7 @@ NetworkActiveInterface::setActiveInterfaceProperties() noexcept
     if (not _ifindex) {
         return std::nullopt;
     }
-    hwaddr_t hardware_addr{};
-    std::memcpy(hardware_addr.data(),
-                static_cast<const char*>(_ifr.ifr_hwaddr.sa_data), hwaddr_size);
-
-    return hardware_addr;
+    return _hwaddr;
 }
 
 [[nodiscard]] auto NetworkActiveInterface::getProtocolAddr() const noexcept
@@ -130,12 +162,5 @@ NetworkActiveInterface::setActiveInterfaceProperties() noexcept
     if (not _ifindex) {
         return std::nullopt;
     }
-    praddr_t protocol_addr{};
-    constexpr u8 protocol_addr_offset = 2;
-    std::memcpy(protocol_addr.data(),
-                std::next(static_cast<const char*>(_ifr.ifr_addr.sa_data),
-                          protocol_addr_offset),
-                praddr_size);
-
-    return protocol_addr;
+    return _praddr;
 }

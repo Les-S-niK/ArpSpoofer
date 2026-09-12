@@ -3,6 +3,8 @@
 
 #include <net/if.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #include <array>
 #include <expected>
@@ -10,7 +12,7 @@
 #include <optional>
 
 #include "number_usings.hpp"
-#include "raw_socket.hpp"
+#include "sockets.hpp"
 
 namespace network_interfaces {
 
@@ -35,7 +37,8 @@ class NetworkActiveInterface {
     enum class Errors : u8 {
         CanNotGetInterfaceFlags = 0,
         CanNotGetInterfaceHwAddr = 1,
-        CanNotGetInterfacePrAddr = 2
+        CanNotGetInterfacePrAddr = 2,
+        CanNotGetSocketFd = 3
     };
 
    private:
@@ -55,7 +58,7 @@ class NetworkActiveInterface {
         -> NetworkActiveInterface& = default;
     ~NetworkActiveInterface() noexcept = default;
 
-    [[nodiscard]] static auto create(RawSocket::sock_fd sock_fd) noexcept
+    [[nodiscard]] static auto create() noexcept
         -> std::expected<NetworkActiveInterface, Errors>;
     [[nodiscard]] auto getInterfaceIndex() const noexcept -> std::optional<i32>;
     [[nodiscard]] auto getInterfaceName() const noexcept
@@ -68,11 +71,13 @@ class NetworkActiveInterface {
    private:
     std::optional<i32> _ifindex = std::nullopt;
     std::optional<ifname_t> _ifname = std::nullopt;
-    RawSocket::sock_fd _sock_fd{};
     struct ifreq _ifr{};
+    hwaddr_t _hwaddr{};
+    praddr_t _praddr{};
+    UdpSocket _udp_socket;
     NetworkInterfaces _network_interfaces;
 
-    explicit NetworkActiveInterface(RawSocket::sock_fd sock_fd);
+    explicit NetworkActiveInterface(UdpSocket udp_socket);
     [[nodiscard]] auto setActiveInterface() noexcept
         -> std::expected<void, Errors>;
     [[nodiscard]] auto fillInterfaceRequestStruct(u32 ifindex) noexcept
@@ -81,6 +86,11 @@ class NetworkActiveInterface {
         -> std::expected<void, Errors>;
     [[nodiscard]] auto setActiveInterfaceProperties() noexcept
         -> std::expected<void, Errors>;
+    [[nodiscard]] auto setActiveInterfaceHardwareAddr() noexcept
+        -> std::expected<void, Errors>;
+    [[nodiscard]] auto setActiveInterfaceProtocolAddr() noexcept
+        -> std::expected<void, Errors>;
+    auto setActiveInterfaceName() noexcept -> void;
 };
 
 }  // namespace network_interfaces

@@ -10,7 +10,7 @@
 
 #include "net_interfaces.hpp"
 #include "number_usings.hpp"
-#include "raw_socket.hpp"
+#include "sockets.hpp"
 
 constexpr u8 hwaddr_size = 6;
 constexpr u8 praddr_size = 4;
@@ -23,10 +23,8 @@ class NetworkActiveInterfaceTest : public testing::Test {
    protected:
     void SetUp() override {
         memset(&ifr, 0, sizeof(ifr));
-        auto socket = RawSocket::create();
+        socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
-        ASSERT_TRUE(socket.has_value());
-        socket_fd = socket.value().getSockFd();
         ASSERT_NE(socket_fd, -1);
 
         struct if_nameindex* ifnameindex = if_nameindex();
@@ -34,7 +32,7 @@ class NetworkActiveInterfaceTest : public testing::Test {
         ASSERT_TRUE(ifnameindex != nullptr);
 
         while (ifnameindex->if_name) {
-            searchForActiveIface(socket->getSockFd(), ifnameindex);
+            searchForActiveIface(socket_fd, ifnameindex);
         }
         if_freenameindex(ifnameindex_begin);
     }
@@ -80,9 +78,6 @@ class NetworkActiveInterfaceTest : public testing::Test {
     auto getActiveIface() -> void {
         getActiveIfaceAddrs();
         ifindex = if_nametoindex(ifr.ifr_name);
-        memcpy(&hwaddr, &ifr.ifr_hwaddr.sa_data, hwaddr_size);
-        memcpy(&praddr, ifr.ifr_addr.sa_data + 2, praddr_size);
-
         ASSERT_NE(ifindex, -1);
     }
 
@@ -90,9 +85,11 @@ class NetworkActiveInterfaceTest : public testing::Test {
         if (ioctl(socket_fd, SIOCGIFHWADDR, &ifr) == -1) {
             FAIL();
         }
+        memcpy(&hwaddr, &ifr.ifr_hwaddr.sa_data, hwaddr_size);
         if (ioctl(socket_fd, SIOCGIFADDR, &ifr) == -1) {
             FAIL();
         }
+        memcpy(&praddr, ifr.ifr_addr.sa_data + 2, praddr_size);
     }
 };
 
@@ -112,13 +109,13 @@ TEST(NetworkInterfacesTest, TestGetNextInterfaceIndexReturnsCorrectIndex) {
 }
 
 TEST_F(NetworkActiveInterfaceTest, TestGetIfIndexReturnsCorrectIndex) {
-    auto network_iface = NetworkActiveInterface::create(socket_fd);
+    auto network_iface = NetworkActiveInterface::create();
     ASSERT_TRUE(network_iface.has_value());
     ASSERT_EQ(network_iface->getInterfaceIndex(), ifindex);
 }
 
 TEST_F(NetworkActiveInterfaceTest, TestGetIfNameReturnsCorrectName) {
-    auto network_iface = NetworkActiveInterface::create(socket_fd);
+    auto network_iface = NetworkActiveInterface::create();
     std::array<i8, IFNAMSIZ> name{};
 
     ASSERT_TRUE(network_iface.has_value());
@@ -130,7 +127,7 @@ TEST_F(NetworkActiveInterfaceTest, TestGetIfNameReturnsCorrectName) {
 }
 
 TEST_F(NetworkActiveInterfaceTest, TestGetHardwareAddrReturnsCorrectMAC) {
-    auto network_iface = NetworkActiveInterface::create(socket_fd);
+    auto network_iface = NetworkActiveInterface::create();
     ASSERT_TRUE(network_iface.has_value());
 
     auto hw_addr = network_iface->getHardwareAddr();
@@ -140,7 +137,7 @@ TEST_F(NetworkActiveInterfaceTest, TestGetHardwareAddrReturnsCorrectMAC) {
 }
 
 TEST_F(NetworkActiveInterfaceTest, TestGetProtocolAddrReturnsCorrectIPv4) {
-    auto network_iface = NetworkActiveInterface::create(socket_fd);
+    auto network_iface = NetworkActiveInterface::create();
     ASSERT_TRUE(network_iface.has_value());
 
     auto pr_addr = network_iface->getProtocolAddr();

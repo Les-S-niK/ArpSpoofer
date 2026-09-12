@@ -7,25 +7,7 @@
 #include <concepts>
 
 #include "number_usings.hpp"
-
-template <typename Iter>
-constexpr auto u16ToU8Array(Iter begin, u16 number) noexcept -> void {
-    if (begin == nullptr or std::next(begin, 1) == nullptr) [[unlikely]] {
-        std::terminate();
-    }
-    constexpr u8 byte_size = 0x08;
-    constexpr u8 max_byte = 0xFF;
-    *begin = number >> byte_size;
-    *(std::next(begin, 1)) = number & max_byte;
-}
-
-[[nodiscard]] constexpr auto u16ToU8Array(u16 number) noexcept
-    -> std::array<u8, 2> {
-    std::array<u8, 2> result{};
-    u16ToU8Array(result.begin(), number);
-
-    return result;
-}
+#include "utils.hpp"
 
 template <typename Frame, u16 FrameSize, u16 HeaderSize, u16 PayloadSize>
 concept frame_trait = requires(Frame frame, std::array<u8, HeaderSize> header,
@@ -87,6 +69,7 @@ constexpr u8 arp_header_size = 8;
 constexpr u8 arp_payload_size = 20;
 class ArpFrame : public NetworkFrame<arp_header_size, arp_payload_size> {
    public:
+    static constexpr u16 arp_proto_type = 0x0806;
     static constexpr u8 header_size = arp_header_size;
     static constexpr u8 payload_size = arp_payload_size;
 
