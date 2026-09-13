@@ -7,9 +7,11 @@
 #include <unistd.h>
 
 #include <array>
+#include <cstring>
 #include <expected>
 #include <generator>
 #include <optional>
+#include <utility>
 
 #include "number_usings.hpp"
 #include "sockets.hpp"
@@ -51,11 +53,11 @@ class NetworkActiveInterface {
 
    public:
     NetworkActiveInterface(const NetworkActiveInterface&) noexcept = delete;
-    NetworkActiveInterface(NetworkActiveInterface&&) noexcept = default;
+    NetworkActiveInterface(NetworkActiveInterface&& other) noexcept;
     auto operator=(const NetworkActiveInterface&) noexcept
         -> NetworkActiveInterface& = delete;
-    auto operator=(NetworkActiveInterface&&) noexcept
-        -> NetworkActiveInterface& = default;
+    auto operator=(NetworkActiveInterface&& other) noexcept
+        -> NetworkActiveInterface&;
     ~NetworkActiveInterface() noexcept = default;
 
     [[nodiscard]] static auto create() noexcept

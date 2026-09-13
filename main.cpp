@@ -2,6 +2,7 @@
 
 #include <linux/if_ether.h>
 
+#include <cstdio>
 #include <cstdlib>
 #include <exception>
 #include <print>
@@ -13,9 +14,12 @@
 auto main() -> int {
     std::println("main");
 
-    // ARP Frame sending example.
     using network_interfaces::NetworkActiveInterface;
+
     auto active_iface = NetworkActiveInterface::create();
+    if (not active_iface) {
+        std::terminate();
+    }
     auto raw_socket =
         RawSocket::create(ETH_P_ARP, active_iface->getInterfaceIndex().value());
     if (not raw_socket) {
@@ -40,6 +44,10 @@ auto main() -> int {
     ether_frame.setHeaderPayloadType(0x0806);
     ether_frame.setPayload(arp_frame.toU8Array());
 
-    raw_socket->send<EthernetFrame<28>, 14, 28>(ether_frame);
+    raw_socket->sendData<EthernetFrame<28>, 14, 28>(ether_frame);
+
+    auto buffer = raw_socket->recvData<42>();
+    std::println("{}", buffer.value());
+
     return EXIT_SUCCESS;
 }

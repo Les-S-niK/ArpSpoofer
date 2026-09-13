@@ -2,6 +2,7 @@
 #include "net_interfaces.hpp"
 
 #include <array>
+#include <cstdio>
 #include <expected>
 #include <optional>
 
@@ -32,6 +33,21 @@ NetworkInterfaces::~NetworkInterfaces() {
     }
 }
 
+NetworkActiveInterface::NetworkActiveInterface(
+    NetworkActiveInterface&& other) noexcept
+    : _ifindex{other._ifindex},
+      _ifname{other._ifname},
+      _ifr{other._ifr},
+      _hwaddr{other._hwaddr},
+      _praddr{other._praddr},
+      _udp_socket{std::move(other._udp_socket)},
+      _network_interfaces{std::move(other._network_interfaces)} {
+    other._ifindex = std::nullopt;
+    other._ifname = std::nullopt;
+    memset(&other._ifr, 0, sizeof(struct ifreq));
+    other._hwaddr.fill(0);
+    other._praddr.fill(0);
+}
 [[nodiscard]] auto NetworkActiveInterface::create() noexcept
     -> std::expected<NetworkActiveInterface, Errors> {
     auto udp_socket = UdpSocket::create();
@@ -45,12 +61,10 @@ NetworkInterfaces::~NetworkInterfaces() {
     }
     return active_interface;
 }
-
 NetworkActiveInterface::NetworkActiveInterface(UdpSocket udp_socket)
     : _udp_socket(std::move(udp_socket)) {
     std::memset(&_ifr, 0, sizeof(struct ifreq));
 }
-
 [[nodiscard]] auto NetworkActiveInterface::setActiveInterface() noexcept
     -> std::expected<void, Errors> {
     for (const u32 ifindex : _network_interfaces.getNextInterfaceIndex()) {
@@ -64,7 +78,6 @@ NetworkActiveInterface::NetworkActiveInterface(UdpSocket udp_socket)
     }
     return {};
 }
-
 [[nodiscard]] auto NetworkActiveInterface::fillInterfaceRequestStruct(
     u32 ifindex) noexcept -> std::expected<void, Errors> {
     _ifr.ifr_ifindex = static_cast<i32>(ifindex);
@@ -75,7 +88,6 @@ NetworkActiveInterface::NetworkActiveInterface(UdpSocket udp_socket)
     }
     return {};
 }
-
 [[nodiscard]] auto
 NetworkActiveInterface::searchActiveInterfaceByFlags() noexcept
     -> std::expected<void, Errors> {
@@ -90,7 +102,6 @@ NetworkActiveInterface::searchActiveInterfaceByFlags() noexcept
     }
     return {};
 }
-
 [[nodiscard]] auto
 NetworkActiveInterface::setActiveInterfaceProperties() noexcept
     -> std::expected<void, Errors> {
@@ -118,7 +129,6 @@ NetworkActiveInterface::setActiveInterfaceHardwareAddr() noexcept
                 static_cast<const char*>(_ifr.ifr_hwaddr.sa_data), hwaddr_size);
     return {};
 }
-
 [[nodiscard]] auto
 NetworkActiveInterface::setActiveInterfaceProtocolAddr() noexcept
     -> std::expected<void, Errors> {
@@ -132,23 +142,19 @@ NetworkActiveInterface::setActiveInterfaceProtocolAddr() noexcept
                 praddr_size);
     return {};
 }
-
 auto NetworkActiveInterface::setActiveInterfaceName() noexcept -> void {
     _ifname = std::array<i8, ifname_size>{};
     std::memcpy(_ifname->data(), static_cast<const char*>(_ifr.ifr_name),
                 ifname_size);
 }
-
 [[nodiscard]] auto NetworkActiveInterface::getInterfaceIndex() const noexcept
     -> std::optional<i32> {
     return _ifindex;
 }
-
 [[nodiscard]] auto NetworkActiveInterface::getInterfaceName() const noexcept
     -> std::optional<ifname_t> {
     return _ifname;
 }
-
 [[nodiscard]] auto NetworkActiveInterface::getHardwareAddr() const noexcept
     -> std::optional<hwaddr_t> {
     if (not _ifindex) {
@@ -156,7 +162,6 @@ auto NetworkActiveInterface::setActiveInterfaceName() noexcept -> void {
     }
     return _hwaddr;
 }
-
 [[nodiscard]] auto NetworkActiveInterface::getProtocolAddr() const noexcept
     -> std::optional<praddr_t> {
     if (not _ifindex) {

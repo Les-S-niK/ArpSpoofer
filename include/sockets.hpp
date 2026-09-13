@@ -6,6 +6,9 @@
 #include <unistd.h>
 
 #include <array>
+#include <cstdio>
+#include <cstring>
+#include <expected>
 #include <optional>
 
 #include "frames.hpp"
@@ -17,9 +20,9 @@ class RawSocket {
 
     RawSocket() = delete;
     RawSocket(const RawSocket& other) = delete;
-    RawSocket(RawSocket&&) = default;
+    RawSocket(RawSocket&& other) noexcept;
     auto operator=(const RawSocket& other) -> RawSocket& = delete;
-    auto operator=(RawSocket&&) -> RawSocket& = default;
+    auto operator=(RawSocket&& other) noexcept -> RawSocket&;
     ~RawSocket();
 
     [[nodiscard]] static auto create(u16 protocol_type,
@@ -29,7 +32,12 @@ class RawSocket {
     template <typename Frame, u16 HeaderSize, u16 PayloadSize>
         requires frame_trait<Frame, HeaderSize + PayloadSize, HeaderSize,
                              PayloadSize>
-    auto send(Frame frame) noexcept;
+    auto sendData(Frame frame) const noexcept -> std::optional<u64>;
+
+    template <u16 Size>
+    [[nodiscard]] auto recvData() const noexcept
+        -> std::optional<std::array<u8, Size>>;
+
     [[nodiscard]] auto getSockFd() const noexcept -> i32;
 
    private:
@@ -40,16 +48,6 @@ class RawSocket {
     RawSocket(sock_fd sock_fd, i32 iface_index, u16 protocol_type) noexcept;
 };
 
-template <typename Frame, u16 HeaderSize, u16 PayloadSize>
-    requires frame_trait<Frame, HeaderSize + PayloadSize, HeaderSize,
-                         PayloadSize>
-inline auto RawSocket::send(Frame frame) noexcept {
-    std::array<u8, HeaderSize + PayloadSize> frame_buffer = frame.toU8Array();
-    sendto(_sock_fd, frame_buffer.data(), frame_buffer.size(), 0,
-           reinterpret_cast<const struct sockaddr*>(&_sll),
-           sizeof(struct sockaddr_ll));
-}
-
 class UdpSocket {
    public:
     using sock_fd = i32;
@@ -58,18 +56,42 @@ class UdpSocket {
     UdpSocket(const UdpSocket&) = delete;
     UdpSocket(UdpSocket&& other) noexcept;
     auto operator=(const UdpSocket&) -> UdpSocket& = delete;
-    auto operator=(UdpSocket&&) -> UdpSocket& = delete;
+    auto operator=(UdpSocket&& other) noexcept -> UdpSocket&;
     ~UdpSocket() noexcept;
 
     [[nodiscard]] static auto create() noexcept -> std::optional<UdpSocket>;
-    [[nodiscard]] auto getSockFd() const noexcept -> sock_fd {
-        return _sock_fd;
-    }
+    [[nodiscard]] auto getSockFd() const noexcept -> sock_fd;
 
    private:
     sock_fd _sock_fd = -1;
 
     explicit UdpSocket(sock_fd sock_fd) noexcept;
 };
+
+template <typename Frame, u16 HeaderSize, u16 PayloadSize>
+    requires frame_trait<Frame, HeaderSize + PayloadSize, HeaderSize,
+                         PayloadSize>
+inline auto RawSocket::sendData(Frame frame) const noexcept
+    -> std::optional<u64> {
+    std::array<u8, HeaderSize + PayloadSize> frame_buffer = frame.toU8Array();
+    u64 sended_bytes =
+        sendto(_sock_fd, frame_buffer.data(), frame_buffer.size(), 0,
+               reinterpret_cast<const struct sockaddr*>(&_sll),
+               sizeof(struct sockaddr_ll));
+    if (sended_bytes == -1UL) {
+        return std::nullopt;
+    }
+    return sended_bytes;
+}
+
+template <u16 Size>
+[[nodiscard]] inline auto RawSocket::recvData() const noexcept
+    -> std::optional<std::array<u8, Size>> {
+    std::array<u8, Size> buffer{};
+    if (recv(_sock_fd, buffer.data(), buffer.size(), 0) == -1) {
+        return std::nullopt;
+    }
+    return buffer;
+}
 
 #endif  // INCLUDE_INCLUDE_SOCKETS_HPP_
