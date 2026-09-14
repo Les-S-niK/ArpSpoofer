@@ -37,7 +37,7 @@ class RawSocketSendRecvTest : public testing::Test {
     }
     void TearDown() override {}
 
-    std::expected<NetworkActiveInterface, NetworkActiveInterface::Errors>
+    std::expected<NetworkActiveInterface, network_interfaces::Errors>
         active_iface = NetworkActiveInterface::create();
     std::optional<RawSocket> raw_socket = RawSocket::create(
         arp_proto_type, active_iface->getInterfaceIndex().value());

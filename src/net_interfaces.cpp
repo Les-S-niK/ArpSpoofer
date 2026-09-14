@@ -2,7 +2,6 @@
 #include "net_interfaces.hpp"
 
 #include <array>
-#include <cstdio>
 #include <expected>
 #include <optional>
 

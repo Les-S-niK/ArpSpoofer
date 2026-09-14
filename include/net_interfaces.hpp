@@ -7,16 +7,22 @@
 #include <unistd.h>
 
 #include <array>
-#include <cstring>
 #include <expected>
 #include <generator>
 #include <optional>
-#include <utility>
 
 #include "number_usings.hpp"
 #include "sockets.hpp"
 
 namespace network_interfaces {
+
+enum class Errors : u8 {
+    CanNotGetInterfaceFlags = 0,
+    CanNotGetInterfaceHwAddr = 1,
+    CanNotGetInterfacePrAddr = 2,
+    CanNotGetSocketFd = 3,
+    CanNotGetInterfaceIndex = 4,
+};
 
 class NetworkInterfaces {
    public:
@@ -36,13 +42,6 @@ class NetworkInterfaces {
 
 class NetworkActiveInterface {
    public:
-    enum class Errors : u8 {
-        CanNotGetInterfaceFlags = 0,
-        CanNotGetInterfaceHwAddr = 1,
-        CanNotGetInterfacePrAddr = 2,
-        CanNotGetSocketFd = 3
-    };
-
    private:
     static constexpr u8 ifname_size = IFNAMSIZ;
     static constexpr u8 hwaddr_size = 6;

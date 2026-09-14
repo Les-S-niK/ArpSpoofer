@@ -7,22 +7,16 @@
 #include <exception>
 #include <print>
 
+#include "arp_client.hpp"
 #include "include/frames.hpp"
 #include "net_interfaces.hpp"
-#include "sockets.hpp"
 
 auto main() -> int {
     std::println("main");
 
     using network_interfaces::NetworkActiveInterface;
-
     auto active_iface = NetworkActiveInterface::create();
     if (not active_iface) {
-        std::terminate();
-    }
-    auto raw_socket =
-        RawSocket::create(ETH_P_ARP, active_iface->getInterfaceIndex().value());
-    if (not raw_socket) {
         std::terminate();
     }
 
@@ -37,17 +31,14 @@ auto main() -> int {
     arp_frame.setPayloadSourceHwAddr(active_iface->getHardwareAddr().value());
     arp_frame.setPayloadSourcePrAddr(active_iface->getProtocolAddr().value());
 
-    EthernetFrame<ArpFrame::header_size + ArpFrame::payload_size> ether_frame{};
-    ether_frame.setHeaderSourceHwAddr(active_iface->getHardwareAddr().value());
-    ether_frame.setHeaderDestinationHwAddr(
-        {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF});
-    ether_frame.setHeaderPayloadType(0x0806);
-    ether_frame.setPayload(arp_frame.toU8Array());
-
-    raw_socket->sendData<EthernetFrame<28>, 14, 28>(ether_frame);
-
-    auto buffer = raw_socket->recvData<42>();
-    std::println("{}", buffer.value());
+    auto arp_client = ArpClient::create();
+    if (not arp_client) {
+        std::terminate();
+    }
+    arp_client->sendFrame(arp_frame);
+    for (const auto& received_frame : arp_client->recvFrame()) {
+        std::println("{}", received_frame.toU8Array());
+    }
 
     return EXIT_SUCCESS;
 }
