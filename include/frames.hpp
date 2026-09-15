@@ -87,6 +87,8 @@ constexpr u8 arp_payload_size = 20;
 class ArpFrame : public NetworkFrame<arp_header_size, arp_payload_size> {
    public:
     static constexpr u16 arp_proto_type = 0x0806;
+    static constexpr u16 request_opcode = 0x0001;
+    static constexpr u16 response_opcode = 0x0002;
     static constexpr u8 header_size = arp_header_size;
     static constexpr u8 payload_size = arp_payload_size;
 
@@ -107,32 +109,11 @@ class ArpFrame : public NetworkFrame<arp_header_size, arp_payload_size> {
     constexpr auto setHeaderPrAddrSize(u8 praddr_size) noexcept -> ArpFrame&;
     constexpr auto setHeaderOpcode(u16 opcode) noexcept -> ArpFrame&;
 
-    [[nodiscard]] constexpr auto getHeaderHwAddrType() const noexcept -> u16 {
-        auto header = this->getHeaderView();
-        u8 first_byte = *std::next(header.begin(), header_hw_type_offset);
-        u8 second_byte = *std::next(header.begin(), header_hw_type_offset + 1);
-        return utils::u8U8ToU16(first_byte, second_byte);
-    }
-    [[nodiscard]] constexpr auto getHeaderPrAddrType() const noexcept -> u16 {
-        auto header = this->getHeaderView();
-        u8 first_byte = *std::next(header.begin(), header_pr_type_offset);
-        u16 second_byte = *std::next(header.begin(), header_pr_type_offset + 1);
-        return utils::u8U8ToU16(first_byte, second_byte);
-    }
-    [[nodiscard]] constexpr auto getHeaderHwAddrSize() const noexcept -> u8 {
-        auto header = this->getHeaderView();
-        return *std::next(header.begin(), header_hw_size_offset);
-    }
-    [[nodiscard]] constexpr auto getHeaderPrAddrSize() const noexcept -> u8 {
-        auto header = this->getHeaderView();
-        return *std::next(header.begin(), header_pr_size_offset);
-    }
-    [[nodiscard]] constexpr auto getHeaderOpcode() const noexcept -> u16 {
-        auto header = this->getHeaderView();
-        u8 first_byte = *std::next(header.begin(), header_opcode_offset);
-        u16 second_byte = *std::next(header.begin(), header_opcode_offset + 1);
-        return utils::u8U8ToU16(first_byte, second_byte);
-    }
+    [[nodiscard]] constexpr auto getHeaderHwAddrType() const noexcept -> u16;
+    [[nodiscard]] constexpr auto getHeaderPrAddrType() const noexcept -> u16;
+    [[nodiscard]] constexpr auto getHeaderHwAddrSize() const noexcept -> u8;
+    [[nodiscard]] constexpr auto getHeaderPrAddrSize() const noexcept -> u8;
+    [[nodiscard]] constexpr auto getHeaderOpcode() const noexcept -> u16;
 
     constexpr auto setPayloadSourceHwAddr(
         ArpFrame::hwaddr_t src_hwaddr) noexcept -> ArpFrame&;
@@ -294,6 +275,36 @@ constexpr auto ArpFrame::setHeaderOpcode(u16 opcode) noexcept -> ArpFrame& {
     utils::u16ToU8Array(std::next(header.begin(), header_opcode_offset),
                         opcode);
     return *this;
+}
+[[nodiscard]] constexpr auto ArpFrame::getHeaderHwAddrType() const noexcept
+    -> u16 {
+    auto header = this->getHeaderView();
+    u8 first_byte = *std::next(header.begin(), header_hw_type_offset);
+    u8 second_byte = *std::next(header.begin(), header_hw_type_offset + 1);
+    return utils::u8U8ToU16(first_byte, second_byte);
+}
+[[nodiscard]] constexpr auto ArpFrame::getHeaderPrAddrType() const noexcept
+    -> u16 {
+    auto header = this->getHeaderView();
+    u8 first_byte = *std::next(header.begin(), header_pr_type_offset);
+    u16 second_byte = *std::next(header.begin(), header_pr_type_offset + 1);
+    return utils::u8U8ToU16(first_byte, second_byte);
+}
+[[nodiscard]] constexpr auto ArpFrame::getHeaderHwAddrSize() const noexcept
+    -> u8 {
+    auto header = this->getHeaderView();
+    return *std::next(header.begin(), header_hw_size_offset);
+}
+[[nodiscard]] constexpr auto ArpFrame::getHeaderPrAddrSize() const noexcept
+    -> u8 {
+    auto header = this->getHeaderView();
+    return *std::next(header.begin(), header_pr_size_offset);
+}
+[[nodiscard]] constexpr auto ArpFrame::getHeaderOpcode() const noexcept -> u16 {
+    auto header = this->getHeaderView();
+    u8 first_byte = *std::next(header.begin(), header_opcode_offset);
+    u16 second_byte = *std::next(header.begin(), header_opcode_offset + 1);
+    return utils::u8U8ToU16(first_byte, second_byte);
 }
 constexpr auto ArpFrame::setPayloadSourceHwAddr(
     ArpFrame::hwaddr_t src_hwaddr) noexcept -> ArpFrame& {

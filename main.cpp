@@ -27,7 +27,7 @@ auto main() -> int {
     arp_frame.setHeaderPrAddrType(0x0800);
     arp_frame.setHeaderOpcode(0x0001);
     arp_frame.setPayloadDestinationHwAddr({0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF});
-    arp_frame.setPayloadDestinationPrAddr({192, 168, 0, 200});
+    arp_frame.setPayloadDestinationPrAddr({192, 168, 0, 1});
     arp_frame.setPayloadSourceHwAddr(active_iface->getHardwareAddr().value());
     arp_frame.setPayloadSourcePrAddr(active_iface->getProtocolAddr().value());
 

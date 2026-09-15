@@ -3,7 +3,7 @@ set(PROJECT_NAME "ArpSpoofer")
 
 project(${PROJECT_NAME} LANGUAGES CXX)
 
-option(TESTING "Enable testing build" OFF)
+option(TESTING "Enable testing build" ON)
 
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -14,8 +14,12 @@ if(TESTING)
   include(GoogleTest)
   add_executable(
     ArpSpooferTests
-    tests/tests_frames.cpp tests/tests_net_interfaces.cpp
-    ./tests/tests_sockets.cpp ./src/sockets.cpp ./src/net_interfaces.cpp
+    tests/tests_frames.cpp
+    tests/tests_net_interfaces.cpp
+    ./tests/tests_arp_client.cpp
+    ./tests/tests_sockets.cpp
+    ./src/sockets.cpp
+    ./src/net_interfaces.cpp
     ./src/arp_client.cpp)
   target_include_directories(ArpSpooferTests PRIVATE include)
   target_link_libraries(ArpSpooferTests PRIVATE GTest::gtest GTest::gtest_main)
