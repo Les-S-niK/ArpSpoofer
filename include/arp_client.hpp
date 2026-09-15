@@ -3,6 +3,7 @@
 
 #include <expected>
 #include <generator>
+#include <optional>
 
 #include "frames.hpp"
 #include "net_interfaces.hpp"
@@ -24,13 +25,17 @@ class ArpClient {
     [[nodiscard]] static auto create() noexcept
         -> std::expected<ArpClient, Errors>;
     auto sendFrame(ArpFrame frame) const noexcept -> void;
-    auto recvFrame() noexcept -> std::generator<ArpFrame>;
+    [[nodiscard]] auto recvFrame() const noexcept -> std::generator<ArpFrame>;
+    [[nodiscard]] auto recvResponseToFrame(ArpFrame frame) const noexcept
+        -> std::optional<ArpFrame>;
 
    private:
     RawSocket _raw_socket;
 
     explicit ArpClient(RawSocket raw_socket);
 
+    [[nodiscard]] static auto checkIsResponse(ArpFrame request,
+                                              ArpFrame response) -> bool;
     [[nodiscard]] static auto getActiveInterfaceIndex()
         -> std::expected<u32, Errors>;
     [[nodiscard]] static constexpr auto getArpFromEthernetFrame(

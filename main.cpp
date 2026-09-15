@@ -2,7 +2,6 @@
 
 #include <linux/if_ether.h>
 
-#include <cstdio>
 #include <cstdlib>
 #include <exception>
 #include <print>
@@ -36,9 +35,14 @@ auto main() -> int {
         std::terminate();
     }
     arp_client->sendFrame(arp_frame);
-    for (const auto& received_frame : arp_client->recvFrame()) {
-        std::println("{}", received_frame.toU8Array());
+    auto response_frame = arp_client->recvResponseToFrame(arp_frame);
+    if (not response_frame) {
+        std::terminate();
     }
+    for (u8 byte : response_frame->getPayloadSourceHwAddr()) {
+        std::print("0x{:02x} ", byte);
+    }
+    std::println();
 
     return EXIT_SUCCESS;
 }

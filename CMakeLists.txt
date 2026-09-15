@@ -3,7 +3,7 @@ set(PROJECT_NAME "ArpSpoofer")
 
 project(${PROJECT_NAME} LANGUAGES CXX)
 
-option(TESTING "Enable testing build" ON)
+option(TESTING "Enable testing build" OFF)
 
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

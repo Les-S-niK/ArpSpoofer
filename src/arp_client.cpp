@@ -31,6 +31,7 @@
 }
 ArpClient::ArpClient(RawSocket raw_socket)
     : _raw_socket(std::move(raw_socket)) {}
+
 auto ArpClient::sendFrame(ArpFrame frame) const noexcept -> void {
     EthernetFrame<arp_frame_size> ether_frame =
         generateEthernetFrameOverArp(frame);
@@ -38,11 +39,31 @@ auto ArpClient::sendFrame(ArpFrame frame) const noexcept -> void {
                          EthernetFrame<0>::header_size, arp_frame_size>(
         ether_frame);
 }
-auto ArpClient::recvFrame() noexcept -> std::generator<ArpFrame> {
+auto ArpClient::recvFrame() const noexcept -> std::generator<ArpFrame> {
     while (auto received_frame = _raw_socket.recvData<frame_size>()) {
         co_yield getArpFromEthernetFrame(received_frame.value());
     }
 }
+[[nodiscard]] auto ArpClient::recvResponseToFrame(ArpFrame frame) const noexcept
+    -> std::optional<ArpFrame> {
+    sendFrame(frame);
+    for (const auto& received_frame : recvFrame()) {
+        if (checkIsResponse(frame, received_frame)) {
+            return received_frame;
+        }
+        return std::nullopt;
+    }
+    return std::nullopt;
+}
+[[nodiscard]] auto ArpClient::checkIsResponse(ArpFrame request,
+                                              ArpFrame response) -> bool {
+    return (response.getHeaderOpcode() == ArpFrame::response_opcode and
+            request.getPayloadSourceHwAddr() ==
+                response.getPayloadDestinationHwAddr() and
+            request.getPayloadSourcePrAddr() ==
+                response.getPayloadDestinationPrAddr());
+}
+
 [[nodiscard]] constexpr auto ArpClient::getArpFromEthernetFrame(
     std::array<u8, frame_size> ethernet_frame) -> ArpFrame {
     std::array<u8, ArpFrame::header_size> arp_header{};
