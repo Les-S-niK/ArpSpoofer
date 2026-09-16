@@ -68,11 +68,14 @@ NetworkActiveInterface::NetworkActiveInterface(UdpSocket udp_socket)
     -> std::expected<void, Errors> {
     for (const u32 ifindex : _network_interfaces.getNextInterfaceIndex()) {
         auto res = fillInterfaceRequestStruct(ifindex).and_then(
-            [this] -> std::expected<void, Errors> {
+            [this] -> std::expected<bool, Errors> {
                 return searchActiveInterfaceByFlags();
             });
         if (not res) {
             return std::unexpected{res.error()};
+        }
+        if (res.value()) {
+            return {};
         }
     }
     return {};
@@ -89,7 +92,7 @@ NetworkActiveInterface::NetworkActiveInterface(UdpSocket udp_socket)
 }
 [[nodiscard]] auto
 NetworkActiveInterface::searchActiveInterfaceByFlags() noexcept
-    -> std::expected<void, Errors> {
+    -> std::expected<bool, Errors> {
     if (_ifr.ifr_flags & IFF_RUNNING and _ifr.ifr_flags & IFF_UP and
         _ifr.ifr_flags & IFF_BROADCAST and
         not(_ifr.ifr_flags & IFF_LOOPBACK) and
@@ -98,8 +101,10 @@ NetworkActiveInterface::searchActiveInterfaceByFlags() noexcept
         if (not res) {
             return std::unexpected{res.error()};
         }
+        return {true};
     }
-    return {};
+
+    return {false};
 }
 [[nodiscard]] auto
 NetworkActiveInterface::setActiveInterfaceProperties() noexcept

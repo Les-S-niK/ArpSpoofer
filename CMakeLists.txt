@@ -20,7 +20,8 @@ if(TESTING)
     ./tests/tests_sockets.cpp
     ./src/sockets.cpp
     ./src/net_interfaces.cpp
-    ./src/arp_client.cpp)
+    ./src/arp_client.cpp
+    ./src/arp_spoofer.cpp)
   target_include_directories(ArpSpooferTests PRIVATE include)
   target_link_libraries(ArpSpooferTests PRIVATE GTest::gtest GTest::gtest_main)
   add_test(NAME ArpSpooferTests COMMAND ArpSpooferTests)
@@ -28,7 +29,7 @@ if(TESTING)
 else()
   add_executable(${PROJECT_NAME} main.cpp)
   add_library(Src ./src/net_interfaces.cpp ./src/sockets.cpp
-                  ./src/arp_client.cpp)
+                  ./src/arp_client.cpp ./src/arp_spoofer.cpp)
   target_include_directories(
     ${PROJECT_NAME}
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

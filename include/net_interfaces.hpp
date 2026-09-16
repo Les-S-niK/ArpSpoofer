@@ -84,7 +84,7 @@ class NetworkActiveInterface {
     [[nodiscard]] auto fillInterfaceRequestStruct(u32 ifindex) noexcept
         -> std::expected<void, Errors>;
     [[nodiscard]] auto searchActiveInterfaceByFlags() noexcept
-        -> std::expected<void, Errors>;
+        -> std::expected<bool, Errors>;
     [[nodiscard]] auto setActiveInterfaceProperties() noexcept
         -> std::expected<void, Errors>;
     [[nodiscard]] auto setActiveInterfaceHardwareAddr() noexcept

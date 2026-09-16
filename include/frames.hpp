@@ -39,8 +39,8 @@ class NetworkFrame {
 
     constexpr auto setHeader(header_t header) noexcept -> NetworkFrame&;
     constexpr auto setPayload(payload_t payload) noexcept -> NetworkFrame&;
-    [[nodiscard]] constexpr auto getHwAddrSize() const noexcept -> u16;
-    [[nodiscard]] constexpr auto getPrAddrSize() const noexcept -> u16;
+    [[nodiscard]] static constexpr auto getHwAddrSize() noexcept -> u16;
+    [[nodiscard]] static constexpr auto getPrAddrSize() noexcept -> u16;
     [[nodiscard]] constexpr auto getHeader() const noexcept -> header_t;
     [[nodiscard]] constexpr auto getHeaderView() const noexcept
         -> const header_t&;
@@ -148,12 +148,12 @@ constexpr auto NetworkFrame<HeaderSize, PayloadSize>::setPayload(
 }
 template <u16 HeaderSize, u16 PayloadSize>
 [[nodiscard]] constexpr auto
-NetworkFrame<HeaderSize, PayloadSize>::getHwAddrSize() const noexcept -> u16 {
+NetworkFrame<HeaderSize, PayloadSize>::getHwAddrSize() noexcept -> u16 {
     return hwaddr_size;
 }
 template <u16 HeaderSize, u16 PayloadSize>
 [[nodiscard]] constexpr auto
-NetworkFrame<HeaderSize, PayloadSize>::getPrAddrSize() const noexcept -> u16 {
+NetworkFrame<HeaderSize, PayloadSize>::getPrAddrSize() noexcept -> u16 {
     return praddr_size;
 }
 template <u16 HeaderSize, u16 PayloadSize>
@@ -339,7 +339,7 @@ constexpr auto ArpFrame::setPayloadDestinationPrAddr(
     ArpFrame::hwaddr_t hwaddr{};
     std::copy_n(
         std::next(this->getPayloadView().begin(), payload_src_hwaddr_offset),
-        this->getHwAddrSize(), hwaddr.begin());
+        ArpFrame::getHwAddrSize(), hwaddr.begin());
     return hwaddr;
 }
 [[nodiscard]] constexpr auto ArpFrame::getPayloadSourcePrAddr() const noexcept
@@ -347,7 +347,7 @@ constexpr auto ArpFrame::setPayloadDestinationPrAddr(
     ArpFrame::praddr_t praddr{};
     std::copy_n(
         std::next(this->getPayloadView().begin(), payload_src_praddr_offset),
-        this->getPrAddrSize(), praddr.begin());
+        ArpFrame::getPrAddrSize(), praddr.begin());
     return praddr;
 }
 [[nodiscard]] constexpr auto ArpFrame::getPayloadDestinationHwAddr()
@@ -355,7 +355,7 @@ constexpr auto ArpFrame::setPayloadDestinationPrAddr(
     ArpFrame::hwaddr_t hwaddr{};
     std::copy_n(
         std::next(this->getPayloadView().begin(), payload_dst_hwaddr_offset),
-        this->getHwAddrSize(), hwaddr.begin());
+        ArpFrame::getHwAddrSize(), hwaddr.begin());
     return hwaddr;
 }
 [[nodiscard]] constexpr auto ArpFrame::getPayloadDestinationPrAddr()
@@ -363,7 +363,7 @@ constexpr auto ArpFrame::setPayloadDestinationPrAddr(
     ArpFrame::praddr_t praddr{};
     std::copy_n(
         std::next(this->getPayloadView().begin(), payload_dst_praddr_offset),
-        this->getPrAddrSize(), praddr.begin());
+        ArpFrame::getPrAddrSize(), praddr.begin());
     return praddr;
 }
 
